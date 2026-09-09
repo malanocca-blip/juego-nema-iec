@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rompecabezas NEMA · IEC</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      background: linear-gradient(145deg, #0d1621 0%, #070b10 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      margin: 0;
+      padding: 16px;
+    }
+    .game-container {
+      max-width: 1300px;
+      width: 100%;
+      background: #1a2838;
+      border-radius: 44px;
+      padding: 22px 24px 28px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+      color: #c4d8ea;
+      text-shadow: 0 2px 3px #05080c;
+      border-bottom: 1px solid #2f465a;
+      padding-bottom: 12px;
+    }
+    .header h1 {
+      font-weight: 400;
+      font-size: 1.4rem;
+      letter-spacing: 1px;
+      margin: 0;
+      background: #1f3345;
+      padding: 4px 20px 4px 22px;
+      border-radius: 40px;
+      box-shadow: inset 0 1px 3px #0b141e;
+    }
+    .header h1 i {
+      font-style: normal;
+      background: #f5c542;
+      color: #141f2b;
+      padding: 0 12px 0 10px;
+      border-radius: 40px;
+      margin-left: 8px;
+      font-weight: 600;
+    }
+    .header .info {
+      display: flex;
+      gap: 20px;
+      font-weight: 300;
+      background: #15202b;
+      padding: 5px 20px 5px 18px;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      border: 1px solid #3a5165;
+    }
+    .header .info span {
+      color: #aac3d9;
+    }
+    .header .info strong {
+      color: #f5e7b0;
+      font-weight: 500;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 16px;
+    }
+    /* panel de símbolos (izquierda) */
+    .symbol-panel {
+      background: #13212f;
+      border-radius: 28px;
+      padding: 12px 6px;
+      border: 1px solid #3a5369;
+      box-shadow: inset 0 6px 12px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      max-height: 780px;
+      overflow-y: auto;
+    }
+    .symbol-panel h3 {
+      margin: 0 0 2px 0;
+      color: #aac3da;
+      font-weight: 400;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border-bottom: 1px dashed #344b60;
+      padding-bottom: 6px;
+      width: 100%;
+      text-align: center;
+    }
+    .symbol-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    .draggable-symbol {
+      background: #1b2f42;
+      border-radius: 18px;
+      padding: 6px 2px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: grab;
+      border: 2px solid #3a5b76;
+      box-shadow: 0 4px 0 #0b141e;
+      transition: 0.05s linear;
+    }
+    .draggable-symbol:active {
+      cursor: grabbing;
+      opacity: 0.4;
+      transform: scale(0.94);
+    }
+    .draggable-symbol svg {
+      display: block;
+      width: 52px;
+      height: 42px;
+      filter: drop-shadow(0 2px 3px #060b10);
+    }
+    .draggable-symbol.dragged {
+      opacity: 0.2;
+      pointer-events: none;
+    }
+    /* zona del circuito estilo plano (cuadrado) */
+    .circuit-area {
+      background: #0b141f;
+      border-radius: 30px;
+      padding: 16px;
+      border: 1px solid #345066;
+      box-shadow: inset 0 0 0 1px #1a2f40, inset 0 8px 18px rgba(0,0,0,0.8);
+    }
+    .circuit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px 10px;
+      padding: 8px;
+      background: #0e1a27;
+      border-radius: 24px;
+      border: 1px solid #263e54;
+    }
+    .circuit-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 2px 0;
+    }
+    .wire-h {
+      height: 4px;
+      background: #487694;
+      border-radius: 4px;
+      box-shadow: 0 0 6px #2a5a74;
+      flex: 1;
+      min-width: 12px;
+    }
+    .wire-v {
+      width: 4px;
+      height: 24px;
+      background: #487694;
+      border-radius: 4px;
+      box-shadow: 0 0 6px #2a5a74;
+    }
+    .component-slot {
+      background: #122433;
+      width: 76px;
+      min-height: 64px;
+      border-radius: 20px;
+      border: 3px dashed #34546e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: 0.1s;
+      box-shadow: inset 0 0 14px #080f18;
+      padding: 3px 2px;
+      position: relative;
+    }
+    .component-slot.dropped {
+      border: 3px solid #f5c542;
+      background: #193247;
+      box-shadow: 0 0 20px #f5b34255;
+    }
+    .component-slot .slot-label {
+      font-size: 0.55rem;
+      color: #aac3db;
+      background: #0a1724;
+      padding: 1px 6px;
+      border-radius: 30px;
+      margin-top: 2px;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      font-weight: 500;
+      text-align: center;
+    }
+    .component-slot svg {
+      width: 48px;
+      height: 38px;
+      filter: drop-shadow(0 2px 4px #070e16);
+    }
+    .reset-area {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 16px;
+      gap: 16px;
+      align-items: center;
+    }
+    .reset-btn {
+      background: #283f56;
+      border: none;
+      color: #ecf5fd;
+      padding: 8px 28px;
+      border-radius: 60px;
+      font-weight: 500;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #0d1823, inset 0 1px 3px #7a9ebd;
+      transition: 0.06s linear;
+      border: 1px solid #446581;
+      letter-spacing: 0.6px;
+    }
+    .reset-btn:active {
+      transform: translateY(5px);
+      box-shadow: 0 1px 0 #0d1823;
+    }
+    .reset-btn:hover {
+      background: #35536e;
+    }
+    .status-msg {
+      color: #c2dbf0;
+      background: #0f1e2b;
+      padding: 5px 24px;
+      border-radius: 60px;
+      border-left: 4px solid #f5c542;
+      font-size: 0.85rem;
+      flex: 1;
+    }
+    .footer {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+      color: #4a6f87;
+      font-size: 0.65rem;
+      letter-spacing: 0.4px;
+      border-top: 1px solid #253b4e;
+      padding-top: 12px;
+    }
+    .footer strong {
+      color: #adcade;
+      font-weight: 400;
+      margin: 0 4px;
+    }
+    .symbol-panel::-webkit-scrollbar { width: 4px; }
+    .symbol-panel::-webkit-scrollbar-thumb { background: #35566e; border-radius: 10px; }
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .symbol-panel { flex-direction: row; flex-wrap: wrap; max-height: 180px; overflow-y: auto; }
+      .symbol-box { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+      .draggable-symbol { width: 70px; }
+      .circuit-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="game-container">
+  <div class="header">
+    <h1>⚡ <i>NEMA · IEC</i> ⚡</h1>
+    <div class="info">
+      <span>👤 <strong>ALANOCCA APAZA MARCO ANTONIO</strong></span>
+      <span>📘 <strong>ACCIONAMIENTOS ELÉCTRICOS</strong></span>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- panel de símbolos (sin nombres) -->
+    <div class="symbol-panel">
+      <h3>📦 SÍMBOLOS</h3>
+      <div class="symbol-box" id="symbolBox">
+        <div class="draggable-symbol" draggable="true" data-symbol="motor" id="sym-motor">
+          <svg viewBox="0 0 60 50"><circle cx="30" cy="25" r="16" fill="none" stroke="#f5c542" stroke-width="3"/><text x="30" y="20" font-size="14" fill="#d4e2f0" text-anchor="middle" font-weight="bold">M</text><text x="30" y="36" font-size="10" fill="#b0c8dd" text-anchor="middle">⏺</text></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="contactor" id="sym-contactor">
+          <svg viewBox="0 0 60 50"><rect x="10" y="12" width="40" height="26" fill="none" stroke="#8ab8e0" stroke-width="3" rx="4"/><text x="30" y="30" font-size="16" fill="#c5def5" text-anchor="middle">K</text><line x1="14" y1="20" x2="46" y2="20" stroke="#8ab8e0" stroke-width="2"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="relay" id="sym-relay">
+          <svg viewBox="0 0 60 50"><rect x="12" y="14" width="36" height="22" fill="none" stroke="#f0b37a" stroke-width="3" rx="6"/><text x="30" y="31" font-size="14" fill="#f0d6b0" text-anchor="middle">R</text><circle cx="24" cy="14" r="3" fill="#f0b37a"/><circle cx="36" cy="14" r="3" fill="#f0b37a"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="breaker" id="sym-breaker">
+          <svg viewBox="0 0 60 50"><path d="M12 25 L28 10 L40 28 L52 12" fill="none" stroke="#f5a3a3" stroke-width="3"/><circle cx="30" cy="25" r="14" fill="none" stroke="#f5a3a3" stroke-width="2"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="transformer" id="sym-transformer">
+          <svg viewBox="0 0 60 50"><ellipse cx="30" cy="25" rx="20" ry="12" fill="none" stroke="#a8d5a2" stroke-width="3"/><text x="30" y="30" font-size="14" fill="#c8edc2" text-anchor="middle">T</text></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="capacitor" id="sym-capacitor">
+          <svg viewBox="0 0 60 50"><line x1="18" y1="16" x2="18" y2="34" stroke="#7fc7e8" stroke-width="4"/><line x1="42" y1="16" x2="42" y2="34" stroke="#7fc7e8" stroke-width="4"/><line x1="10" y1="25" x2="18" y2="25" stroke="#7fc7e8" stroke-width="2"/><line x1="42" y1="25" x2="52" y2="25" stroke="#7fc7e8" stroke-width="2"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="resistor" id="sym-resistor">
+          <svg viewBox="0 0 60 50"><path d="M10 25 L18 25 L22 16 L28 34 L34 16 L40 34 L44 25 L52 25" fill="none" stroke="#e0b07a" stroke-width="3"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="diode" id="sym-diode">
+          <svg viewBox="0 0 60 50"><polygon points="28,12 48,25 28,38" fill="none" stroke="#b8b0e0" stroke-width="3"/><line x1="12" y1="25" x2="28" y2="25" stroke="#b8b0e0" stroke-width="3"/><line x1="48" y1="25" x2="52" y2="25" stroke="#b8b0e0" stroke-width="3"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="switch" id="sym-switch">
+          <svg viewBox="0 0 60 50"><circle cx="16" cy="25" r="6" fill="none" stroke="#d4b87a" stroke-width="3"/><line x1="22" y1="25" x2="44" y2="14" stroke="#d4b87a" stroke-width="3"/><circle cx="44" cy="14" r="4" fill="#d4b87a"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="fuse" id="sym-fuse">
+          <svg viewBox="0 0 60 50"><rect x="12" y="16" width="36" height="18" fill="none" stroke="#f0b0b0" stroke-width="3" rx="2"/><text x="30" y="30" font-size="14" fill="#f5caca" text-anchor="middle">F</text></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="ground" id="sym-ground">
+          <svg viewBox="0 0 60 50"><line x1="30" y1="10" x2="30" y2="26" stroke="#86b3c9" stroke-width="3"/><line x1="14" y1="26" x2="46" y2="26" stroke="#86b3c9" stroke-width="3"/><line x1="20" y1="32" x2="40" y2="32" stroke="#86b3c9" stroke-width="3"/><line x1="26" y1="38" x2="34" y2="38" stroke="#86b3c9" stroke-width="3"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="battery" id="sym-battery">
+          <svg viewBox="0 0 60 50"><line x1="16" y1="30" x2="16" y2="40" stroke="#a0d0a0" stroke-width="4"/><line x1="44" y1="30" x2="44" y2="40" stroke="#a0d0a0" stroke-width="4"/><line x1="16" y1="30" x2="44" y2="30" stroke="#a0d0a0" stroke-width="2"/><line x1="16" y1="40" x2="44" y2="40" stroke="#a0d0a0" stroke-width="2"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="lamp" id="sym-lamp">
+          <svg viewBox="0 0 60 50"><circle cx="30" cy="28" r="12" fill="none" stroke="#f5e07a" stroke-width="3"/><circle cx="30" cy="28" r="6" fill="none" stroke="#f5e07a" stroke-width="2"/><line x1="30" y1="40" x2="30" y2="46" stroke="#f5e07a" stroke-width="3"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="inductor" id="sym-inductor">
+          <svg viewBox="0 0 60 50"><path d="M10 25 Q18 14 26 25 Q34 36 42 25 Q50 14 54 25" fill="none" stroke="#b0cce0" stroke-width="3"/></svg>
+        </div>
+        <div class="draggable-symbol" draggable="true" data-symbol="potentiometer" id="sym-potentiometer">
+          <svg viewBox="0 0 60 50"><rect x="12" y="16" width="36" height="18" fill="none" stroke="#c0b0d0" stroke-width="3" rx="3"/><line x1="30" y1="16" x2="30" y2="10" stroke="#c0b0d0" stroke-width="3"/><line x1="12" y1="25" x2="48" y2="25" stroke="#c0b0d0" stroke-width="3"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- circuito tipo plano (cuadrado) con 15 slots -->
+    <div class="circuit-area">
+      <div class="circuit-grid">
+        <!-- Fila 1: breaker, transformer, switch -->
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot1" data-accept="breaker"><div class="slot-label">Interruptor IEC</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot2" data-accept="transformer"><div class="slot-label">Transformador</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot3" data-accept="switch"><div class="slot-label">Conmutador</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+
+        <!-- Fila 2: contactor, relay, motor -->
+        <div class="circuit-cell"><div class="wire-v"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot4" data-accept="contactor"><div class="slot-label">Contactor IEC</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-v"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot5" data-accept="relay"><div class="slot-label">Relevador NEMA</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-v"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot6" data-accept="motor"><div class="slot-label">Motor NEMA</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-v"></div></div>
+
+        <!-- Fila 3: capacitor, resistor, diode -->
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot7" data-accept="capacitor"><div class="slot-label">Capacitor</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot8" data-accept="resistor"><div class="slot-label">Resistor</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot9" data-accept="diode"><div class="slot-label">Diodo</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+
+        <!-- Fila 4: fuse, inductor, potentiometer -->
+        <div class="circuit-cell"><div class="wire-v"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot10" data-accept="fuse"><div class="slot-label">Fusible</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-v"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot11" data-accept="inductor"><div class="slot-label">Inductor</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-v"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot12" data-accept="potentiometer"><div class="slot-label">Potenciómetro</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-v"></div></div>
+
+        <!-- Fila 5: battery, lamp, ground -->
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot13" data-accept="battery"><div class="slot-label">Batería</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot14" data-accept="lamp"><div class="slot-label">Lámpara</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+        <div class="circuit-cell">
+          <div class="component-slot" id="slot15" data-accept="ground"><div class="slot-label">Tierra</div></div>
+        </div>
+        <div class="circuit-cell"><div class="wire-h"></div></div>
+      </div>
+
+      <div class="reset-area">
+        <div class="status-msg" id="statusMsg">Arrastra los símbolos a su lugar</div>
+        <button class="reset-btn" id="resetBtn">⟳ REINICIAR</button>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span>⏣ NEMA · IEC · <strong>Accionamientos Eléctricos</strong> · ALANOCCA APAZA MARCO ANTONIO</span>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const slotIds = ['slot1','slot2','slot3','slot4','slot5','slot6','slot7','slot8','slot9','slot10','slot11','slot12','slot13','slot14','slot15'];
+    const slotState = {};
+    slotIds.forEach(id => slotState[id] = null);
+
+    const symbolNames = {
+      motor: 'Motor NEMA',
+      contactor: 'Contactor IEC',
+      relay: 'Relevador NEMA',
+      breaker: 'Interruptor IEC',
+      transformer: 'Transformador',
+      capacitor: 'Capacitor',
+      resistor: 'Resistor',
+      diode: 'Diodo',
+      switch: 'Conmutador',
+      fuse: 'Fusible',
+      ground: 'Tierra',
+      battery: 'Batería',
+      lamp: 'Lámpara',
+      inductor: 'Inductor',
+      potentiometer: 'Potenciómetro'
+    };
+
+    function getSvgFromSymbolId(symbolId) {
+      const symEl = document.getElementById(symbolId);
+      if (!symEl) return null;
+      const svg = symEl.querySelector('svg');
+      return svg ? svg.cloneNode(true) : null;
+    }
+
+    function renderSlot(slotId) {
+      const slot = document.getElementById(slotId);
+      if (!slot) return;
+      const current = slotState[slotId];
+      const label = slot.querySelector('.slot-label');
+      slot.innerHTML = '';
+      if (label) slot.appendChild(label);
+
+      if (current) {
+        const svgClone = getSvgFromSymbolId('sym-' + current);
+        if (svgClone) {
+          slot.appendChild(svgClone);
+          slot.classList.add('dropped');
+          if (label) {
+            label.textContent = symbolNames[current] || current;
+            slot.appendChild(label);
+          }
+        } else {
+          const fallback = document.createElement('div');
+          fallback.textContent = '✓ ' + (symbolNames[current] || current);
+          fallback.style.color = '#f5c542';
+          fallback.style.fontWeight = 'bold';
+          fallback.style.fontSize = '0.65rem';
+          slot.appendChild(fallback);
+          slot.classList.add('dropped');
+          if (label) slot.appendChild(label);
+        }
+        slot.removeAttribute('data-empty');
+      } else {
+        slot.classList.remove('dropped');
+        const accepted = slot.dataset.accept;
+        let ph = '';
+        const phMap = {
+          breaker: `<svg viewBox="0 0 60 50"><path d="M12 25 L28 10 L40 28 L52 12" fill="none" stroke="#3a5f7a" stroke-width="2" opacity="0.5"/><circle cx="30" cy="25" r="14" fill="none" stroke="#3a5f7a" stroke-width="2" opacity="0.5"/></svg>`,
+          transformer: `<svg viewBox="0 0 60 50"><ellipse cx="30" cy="25" rx="20" ry="12" fill="none" stroke="#3a5f7a" stroke-width="2" opacity="0.5"/><text x="30" y="30" font-size="14" fill="#3a5f7a" text-anchor="middle" opacity="0.5">T</text></svg>`,
+          switch: `<svg viewBox="0 0 60 50"><circle cx="16" cy="25" r="6" fill="none" stroke="#3a5f7a" stroke-width="2" opacity="0.5"/><line x1="22" y1="25" x2="44" y2="14" stroke="#3a5f7a" stroke-width="2" opacity="0.5"/><circle cx="44" cy="14" r="4" fill="#3a5f7a" opacity="0.5"/></svg>`,
+          contactor: `<svg viewBox="0 0 60 50"><rect x="10" y="12" width="40" height="26" fill="none" stroke="#3a5f7a" stroke-width="2" opacity="0.5" rx="4"/><text x="30" y="30" font-size="16" fill="#3a5f7a" text-anchor="middle" opacity="0.5">K</text><line x1="14" y1="20" x2="46" y2="20" stroke="#3a5f7a" stroke-width="2" opacity="0.5"/></svg>`,
+          relay: `<svg viewBox="0 0 60 50"><rect x="12" y="14" width="36" height="22" fill="none" stroke="#3a5f7a" stroke-width="2" opacity="0.5" rx="6"/><text x="30" y="31" font-size="14" fill="#3a5f7a" text-anchor="middle" opacity="0.5">R</text><circle cx="24" cy="14" r="3" fill="#3a5f7a" opacity="0.5"/><circle cx="36" cy="14" r="3" fill="#3a5f7a" opacity="0.5"/></svg>`,
+          motor: `<svg viewBox="0 0 60 50"><circle cx="30" cy="25" r="16" fill="none" stroke="#3a5f7a" stroke-width="2" opacity="0.5"/><text x="30" y="20" font-size="14" fill="#3a5f7a" text-anchor="middle" opacity="0.5">M</text><text x="30" y="36" font-size="10" fill="#3a5f7a" text-anchor="middle" opacity="0.5">⏺</text></svg>`,
+          capacitor: `<svg viewBox="0 0 60 50"><line x1="18" y1="16" x2="18" y2="34" stroke="#3a5f7a" stroke-width="4" opacity="0.5"/><line x1="42" y1="16" x2="42" y2="34" stroke="#3a5f7a" stroke-width="4" opacity="0.5"/><line x1="10" y1="25" x2="18" y2="25" stroke="#3a5f7a" stroke-width="2" opacity="0.5"/><line x1="42" y1="25" x2="52" y2="25" stroke="#3a5f7a" stroke-width="2" opacity="0.5"/></svg>`,
+          resistor: `<svg viewBox="0 0 60 50"><path d="M10 25 L18 25 L22 16 L28 34 L34 16 L40 34 L44 25 L52 25" fill="none" stroke="#3a5f7a" stroke-width="3" opacity="0.5"/></svg>`,
+          diode: `<svg viewBox="0 0 60 50"><polygon points="28,12 48,25 28,38" fill="none" stroke="#3a5f7a" stroke-width="3" opacity="0.5"/><line x1="12" y1="25" x2="28" y2="25" stroke="#3a5f7a" stroke-width="3" opacity="0.5"/><line x1="48" y1="25" x2="52" y2="25" stroke="#3a5f7a" stroke-width="3" opacity="0.5"/></svg>`,
+          fuse: `<svg viewBox="0 0 60 50"><rect x="12" y="16" width="36" height="18" fill="none" stroke="#3a5f7a" stroke-width="3" opacity="0.5" rx="2"/><text x="30" y="30" font-size="14" fill="#3a5f7a" text-anchor="middle" opacity="0.5">F</text></svg>`,
+          ground: `<svg viewBox="0 0 60 50"><line x1="30" y1="10" x2="30" y2="26" stroke="#3a5f7a" stroke-width="3" opacity="0.5"/><line x1="14" y1="26" x2="46" y2="26" stroke="#3a5f7a" stroke-width="3" opacity="0.5"/><line x1="20" y1="32" x2="40" y2="32" stroke="#3a5f7a" stroke-width="3" opacity="0.5"/
